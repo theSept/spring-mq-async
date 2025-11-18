@@ -1,0 +1,93 @@
+server:
+  port: 9002
+
+
+spring:
+  rabbitmq:
+    addresses: 127.0.0.1:5672
+    username: liuxu
+    password: liuxu
+    virtual-host: /local # 虚拟主机
+
+    publisher-confirm-type: correlated # 消息推送成功后异步回调
+
+    # publisher-returns: true # 如果也想接收 Return 回调，可以开启
+
+    listener:
+      # 全局默认的监听器容器类型，可选值：simple 或 direct
+      # 如果不指定，Spring Boot 2.0+ 默认为 simple
+      type: simple
+
+      # --- SimpleMessageListenerContainer 相关配置 ---
+      simple:
+        # 消息确认模式，manual 表示手动确认
+        # none: 自动确认（消息投递后立即删除，不安全）
+        # auto:  根据处理结果自动确认（成功则ACK，异常则NACK并丢弃）
+        # manual: 手动确认（必须在代码中显式调用 channel.basicAck()）
+        acknowledge-mode: manual
+
+        # 消费者预取数量。控制每次从队列中拉取多少条消息到本地缓存。
+        # 设置为 1 可以实现公平分发，避免一个消费者处理大量消息而另一个空闲。
+        # 对于耗时任务，可以适当增大以提高吞吐量。
+        prefetch: 1
+
+        # 初始并发消费者数量。即在容器启动时，为每个监听的队列创建几个消费者线程。
+        concurrency: 2
+
+        # 最大并发消费者数量。当消息积压时，容器可以动态增加消费者线程，直到达到这个上限。
+        # 注意：这个动态扩容的功能是 Simple 容器特有的。
+        max-concurrency: 10
+
+      # --- DirectMessageListenerContainer 相关配置 ---
+      direct:
+        # 直连模式下的消息确认模式，同样设置为手动确认。
+        acknowledge-mode: manual
+
+        # 每个队列的消费者数量。Direct 容器不会动态扩容，它会为每个监听的队列固定创建指定数量的消费者线程。
+        # 如果不设置，默认为 1。
+        consumers-per-queue: 2
+
+        # --- 全局重试机制配置 ---
+        # 注意：此重试是在消费者抛出异常时，在客户端（消费者应用）内部进行的重试，
+        #       消息不会返回到 RabbitMQ 服务器，除非所有重试都失败。
+        retry:
+          # 是否开启重试机制
+          enabled: true
+          # 最大重试次数（包括第一次失败）
+          max-attempts: 3
+          # 第一次重试的间隔时间
+          initial-interval: 2000ms
+          # 后续重试间隔的乘数（即每次间隔时间都乘以这个值）
+          multiplier: 2
+          # 最大重试间隔时间，防止间隔时间无限增长
+          max-interval: 10000ms
+  application:
+    name: spring-mq
+
+  # 数据库连接配置（必须手动填写）
+  datasource:
+    url: jdbc:mysql://localhost:3306/my_study_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root  # 你的数据库用户名
+    password: root  # 你的数据库密码
+    driver-class-name: com.mysql.cj.jdbc.Driver  # MySQL 驱动类
+
+
+
+########### Mybatis-plus 配置
+mybatis-plus:
+  configuration:
+    # 如果项目无日志框架，可以考虑指定为 org.apache.ibatis.logging.stdout.StdOutImpl (请勿在实际生产中使用).
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # MyBatis 配置 下划线自动驼峰
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      # 数据库配置，注解策略
+      id-type: ASSIGN_UUID
+  mapper-locations: classpath:/mapper/**.xml  # mapper文件目录
+
+
+######## 日志配置
+logging:
+  level:
+    com.baomidou.example.mapper: debug  #开启mybatis的SQL日志
